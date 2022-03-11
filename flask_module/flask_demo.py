@@ -10,9 +10,11 @@ import requests
 def hello_flask():
    return 'Flask'
 
+
 @app.route('/hello')
 def hello_world():
    return 'flask: [Hello]'
+
 
 @app.route('/json_test')
 def hello_json():
@@ -21,8 +23,10 @@ def hello_json():
 
 @app.route('/table/<table_string>')
 def get_product(table_string):
-   return jsonify(string_to_table(table_string))
-
+   table_info = string_to_table(table_string)
+   keys = table_info.keys()
+   print(keys)
+   return jsonify(table_info)
 
 
 # @app.route('/next')
