@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 from flask import Flask,jsonify,request
 app = Flask(__name__)
 
@@ -10,11 +11,9 @@ import requests
 def hello_flask():
    return 'Flask'
 
-
 @app.route('/hello_text')
 def hello_text():
    return 'flask-text: [Hello]'
-
 
 @app.route('/hello_json')
 def hello_json():
@@ -38,27 +37,40 @@ def list_table(db_name):
 
 @app.route('/mysql/<db_name>/<tb_name>')
 def get_table(db_name, tb_name):
-   table = data_module.get_table(db_name, tb_name)
-   print('table_info:', table)
-   cols = [dict(
-      name=col['name'],
-      cname=col['cname'] if len(col['cname'])<10 else col['cname'][:10]+' ...',
-      type=col['type']
-      )
-      for col in table['cols']
-   ]
-   return jsonify(dict(
-      tb_name=table['table_name'],
-      tb_cname = table['table_cn'],
-      cols=cols,
-      samples=table['data']
-   ))
+   return jsonify(data_module.get_table(db_name, tb_name).info)
+   # table = data_module.get_table(db_name, tb_name)
+   # print('table_info:', table)
+   # cols = [dict(
+   #    name=col['name'],
+   #    cname=col['cname'] if len(col['cname'])<10 else col['cname'][:10]+' ...',
+   #    type=col['type']
+   #    )
+   #    for col in table['cols']
+   # ]
+   # return jsonify(dict(
+   #    tb_name=table['table_name'],
+   #    tb_cname = table['table_cn'],
+   #    cols=cols,
+   #    samples=table['data']
+   # ))
+from task import task_dict, Task
+@app.route('/task/<task_name>')
+def get_task(task_name):
+   if task_name not in task_dict:
+      task_dict[task_name] = Task()
+   return jsonify(task_dict[task_name].info)
 
+@app.route('/task/<task_name>/<src_name>', methods=['GET','POST'])
+def task_add_resource(task_name, src_name):
+   task = task_dict[task_name]
+   if request.method == 'GET':
+      return jsonify(task.get_src(src_name))
+   if request.method == 'POST':
+      task.set_src(src_name, request.get_json())
 
-# @app.route('/next')
-# def get_product(table_string):
-#    return string_to_table(table_string)
-
+   # if task_name not in task_dict:
+   #    task_dict[task_name] = Task()
+   # return jsonify(task_dict[task_name])
 
 if __name__ == '__main__':
    app.run()
