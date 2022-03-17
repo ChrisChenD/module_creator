@@ -4,10 +4,16 @@ from flask_module.string_to_table import data_module
 ###
 
 class Task:
-    def __init__(self):
+    registried = dict()
+    def __init__(self, task_name):
+        self.task_name = task_name
         self.desc = ""
         self.src_dict = dict()
         self.output = ''
+    
+    def registry(self):
+        self.registried[self.task_name] = self
+        
     # def add_src(self):
     #     for key in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
     #         if key not in dict():
@@ -28,12 +34,13 @@ class Task:
     @property
     def info(self):
         return dict(
+            task_name=self.task_name,
             desc=self.desc,
             src_dict = self.src_info,
             output=self.output
         )
 
 
-task_dict = dict()
+
 
 
