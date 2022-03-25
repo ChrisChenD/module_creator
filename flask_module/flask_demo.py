@@ -44,7 +44,7 @@ from task import Task
 def get_task(task_name):
     if task_name not in Task.registried:
         Task(task_name).registry()
-   
+     
     info = Task.registried[task_name].info
     print(f'task:{task_name}:')
     print(info)
