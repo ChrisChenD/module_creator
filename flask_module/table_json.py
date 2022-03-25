@@ -1,5 +1,5 @@
 json_context = {
-    "name_list":["Artist", "Song", "Year"],
+    "name_list":["Artist_1", "Song_2", "Year_3"],
     "cname_list": ["艺术家", "歌曲", "年份"],
     "type_list" : ["<char8>", "<char8>", "<char4>"],
     "select_list" : [False,False,True],

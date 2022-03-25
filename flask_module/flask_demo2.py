@@ -18,14 +18,15 @@ class table(Flask_class):
     def __init__(self):
         self.params = json_context
         self.params['name'] = 'table_info'
-    def get(self):
-        print('get select_list:', self.params['select_list'], self.params['name'])
-        return super().get()
+    # def get(self):
+    #     # print('get select_list:', self.params['select_list'], self.params['name'])
+    #     return super().get()
     def post(self, params):
         # print('post params:', params)
         print('post get select_list:', params['select_list'], self.params['name'])
         return super().post(params)
     def render(self):
+        print('render:select_list: ', self.params['select_list'])
         return jsonify(self.params)
 
 # home.registry(lambda f:f)
