@@ -10,35 +10,38 @@ app  = Flask(__name__)
 
 
 #created home view
-class Flask_class:
+class Flask_url:
     obj = None
     prefix = ''
+    # dynamic = ['db_name', 'table_name']
+    dynamic = []
     @classmethod
-    # def registry(cls, f, pre_path=''):
     def registry(cls, app):
-        # f = 
-        # @app.route()
-        #     , methods=['GET', 'POST'])
-        path = "/".join(['', cls.prefix, cls.__name__])
+        path = "/".join(['', cls.prefix, cls.__name__, 
+            *[f"<{var}>" for var in cls.dynamic]
+        ])
         f_name = '_'.join(['', cls.prefix, cls.__name__])
-        def delivery():
-            return Flask_class.delivery(cls)
+        def delivery(*args, **kwargs):
+            return Flask_url.delivery(cls, *args, **kwargs)
         delivery.__name__ = f_name
-        print('regi', delivery.__name__)
+        print('regi', delivery.__name__, path)
+        # @app.route(f'/home', methods=['GET', 'POST'])
         f = app.route(path, methods=['GET', 'POST'])
-        # cls.delivery = f(cls.delivery)
         cls.delivery = f(delivery)
         cls.obj = cls()
-    # @app.route(f'/home', methods=['GET', 'POST'])
     # @classmethod
-    def delivery(cls):# sub class
+    def delivery(cls, *args, **kwargs):# sub class
         self = cls.obj
         if request.method == 'GET':
-            return self.get()
+            return self.get(*args, **kwargs)
         if request.method == 'POST':
-            return self.post(json.loads(request.data))
+            return self.post(json.loads(request.data), *args, **kwargs)
+        print('delivery::: method error!', request.method)
+
     def get(self):
         return self.render()
     def post(self, params):
         self.params = params
         return self.render()
+    def render(self):
+        return 'render default'

@@ -95,3 +95,16 @@ https://github.com/ChrisChenD/module_creator
 >>
 1 环境搭建
 2 验证需求
+---------------------------------------------------------
+基本要实现了新页面, 我们现在实现一个页面需要1小时
+
+1 实现了注册资源, 增减资源的方法
+>> 需要重新约定注册资源--和表之间的联系，以及如何显示一个 ReadMysql 结构
+    >> 晚上搞
+>> 如何给一个 ReadMysql机构增加一个通用方法:
+    比如 表.通过(list)查询(key_field)添加[append_list]
+    a 方法名称
+    b 参数:  (prepare args), (key=key_field, full_data=True) [append_list]
+.
+-----------------------------------
+
