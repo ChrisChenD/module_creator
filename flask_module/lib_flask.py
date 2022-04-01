@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import json
+import json,copy
 from flask import Flask,jsonify,request
+import threading
 # import requests
 # from flask_module.string_to_table import string_to_table, data_module
 
@@ -15,6 +16,30 @@ class Flask_url:
     prefix = ''
     # dynamic = ['db_name', 'table_name']
     dynamic = []
+    mutex = threading.Lock()
+    def __init__(self):
+        self.params = dict()
+        self.init()
+    def init(self): pass
+
+    @property
+    def data(self): 
+        'read/write lock'
+        self.mutex.acquire()
+        params = copy.deepcopy(self.params)
+        self.mutex.release()
+        return params
+    @data.setter
+    def data(self, new_params): 
+        self.mutex.acquire()
+        self.params = copy.deepcopy(new_params)
+        self.mutex.release()
+    def set(self, key, value):
+        'set params: params[key]=value'
+        self.mutex.acquire()
+        self.params[key] = value
+        self.mutex.release()
+
     @classmethod
     def registry(cls, app):
         path = "/".join(['', cls.prefix, cls.__name__, 
@@ -30,13 +55,27 @@ class Flask_url:
         cls.delivery = f(delivery)
         cls.obj = cls()
     # @classmethod
-    def delivery(cls, *args, **kwargs):# sub class
+    def delivery(cls, **dynamic_kwargs):# sub class
+        print('dynamic_kwargs', dynamic_kwargs)
         self = cls.obj
         if request.method == 'GET':
-            return self.get(*args, **kwargs)
+            dynamic_kwargs = dict(
+                (k,v) for k,v in
+                dynamic_kwargs.items()
+                if v is not None)
+            if len(dynamic_kwargs) != len(self.dynamic):# 前端空值
+                return None
+            return self.get(**dynamic_kwargs)
         if request.method == 'POST':
-            return self.post(json.loads(request.data), *args, **kwargs)
+            return self.post(json.loads(request.data), **dynamic_kwargs)
         print('delivery::: method error!', request.method)
+    # def delivery(cls, *args, **kwargs):# sub class
+    #     self = cls.obj
+    #     if request.method == 'GET':
+    #         return self.get(*args, **kwargs)
+    #     if request.method == 'POST':
+    #         return self.post(json.loads(request.data), *args, **kwargs)
+    #     print('delivery::: method error!', request.method)
 
     def get(self):
         return self.render()

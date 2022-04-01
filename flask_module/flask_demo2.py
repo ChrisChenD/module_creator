@@ -10,27 +10,24 @@ from flask_module.utils.mysql_utils import ReadMysql
 
 
 class home(Flask_url):
-    def __init__(self):
-        self.params = [1,2,3]
+    def init(self): 
+        self.data = [1,2,3]
     def render(self):
         print('render!')
-        return "<h1>codeloop.org, ID is {} </h1>".format(self.params)
+        return "<h1>codeloop.org, ID is {} </h1>".format(self.data)
 
 class table(Flask_url):
     prefix = 'demo'
-    def __init__(self):
-        self.params = json_context
-        self.params['name'] = 'table_info'
-    # def get(self):
-    #     # print('get select_list:', self.params['select_list'], self.params['name'])
-    #     return super().get()
+    def init(self):
+        self.data = json_context
+        self.set('name', 'table_info') 
     def post(self, params):
         # print('post params:', params)
-        print('post get select_list:', params['select_list'], self.params['name'])
+        print('post get select_list:', params['select_list'], self.data['name'])
         return super().post(params)
     def render(self):
-        print('render:select_list: ', self.params['select_list'])
-        return jsonify(self.params)
+        print('render:select_list: ', self.data['select_list'])
+        return jsonify(self.data)
 
 # home.registry(lambda f:f)
 
@@ -40,19 +37,16 @@ class table(Flask_url):
 class module(Flask_url):
     prefix = 'unit'
     dynamic = ['db_table_name']
-    def __init__(self):
-        self.params = {}
-    # def render(self):
-    #     return f"{self.params['db_table_name']}.{self.params['table_name']}"
+        
     def get(self, db_table_name):
+        return jsonify(self.get_module())
+    def get_module(self, db_table_name):
         print('db_table_name', db_table_name)
         db_name, table_name = db_table_name.split('.')
         module_info = dict(
            db_table_name = db_table_name,
            info = None
         )
-        # if db_table_name in self.params:
-        #     module_info = self.params[db_table_name]
         try:
             rows = ReadMysql(f"test:test@127.0.0.1:3306/{db_name}")(
                 f"SHOW FULL COLUMNS FROM {table_name}")
@@ -78,11 +72,14 @@ class module(Flask_url):
             import traceback;print(traceback.format_exc())
 
         # print('get!!', module_info)
-        return jsonify(module_info)
+        return module_info
 
     def post(self, module_info, db_table_name):
         db_name, table_name = db_table_name.split('.')
-        self.params[db_table_name] = module_info
+        self.set(db_table_name, module_info)
+        # data = self.data
+        # data[db_table_name] = module_info
+        # self.data = data
         print('post!!', module_info)
         try:
             # create table
@@ -90,27 +87,22 @@ class module(Flask_url):
             print('create module:', r)
         except:
             import traceback;print(traceback.format_exc())
-        
-        return jsonify(self.params)
+        return jsonify(self.data)
 
 class task(Flask_url):
     prefix = 'unit'
     dynamic = ['task_name']
-    def __init__(self):
-        self.params = {}
-        # task_info.task_name = 'xxx'
-        # task_info.src_list = [src, ...src],
-        # task_info.out_name = 'xxx'
-        # task_info.out_sheet = [
-        #     sheet = {
-        #     name = '',
-        #     fields = [field, ...field]
-        #     }    
-        # ]
-    # def render(self):
-    #     return f"{self.params['db_table_name']}.{self.params['table_name']}"
+    # task_info.task_name = 'xxx'
+    # task_info.src_list = [src, ...src],
+    # task_info.out_name = 'xxx'
+    # task_info.out_sheet = [
+    #     sheet = {
+    #     name = '',
+    #     fields = [field, ...field]
+    #     }    
+    # ]
     def get(self, task_name):
-        task_info = self.params.get(task_name,
+        task_info = self.data.get(task_name,
             dict(
                 task_name=task_name,
                 src_list = [],
@@ -120,14 +112,20 @@ class task(Flask_url):
                 ]
             )
         )
+        print('get: ret: task_info', task_info)
         return jsonify(task_info)
 
     def post(self, data, task_name):
-        self.params[task_name] = data
+        self.set(task_name, data)
         return None
 
 class task_src(module):
-    pass
+    dynamic = ['src']
+    def get(self, src):
+        task_name, module_name = src.split('.', 1)
+        m = module().get_module(module_name)
+        return {'module':m, 'task':task_name}
+    
 
 if __name__ == "__main__":
     home.registry(app)
