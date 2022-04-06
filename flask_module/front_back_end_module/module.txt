@@ -1,9 +1,11 @@
+
+
 # 程序模型设计
 #url(task):
     task:
-        task.info:
+        info = task.info:
             .name
-        task.process:
+        process = task.process:
             .root = process.root.table  # <2.3.1.1>
             .branch_dict = [('branch_name', process.branch.query_list)...]
             .out = [(type'list/table/db', out_info)...]
@@ -14,7 +16,7 @@
             .task_name
             .process_name
 
-        table_info:
+        table_info = table.info:
             table_chain:
                 .db.table
             fields.base:
@@ -30,14 +32,6 @@
     process.branch.query_list:
         .global_name/sub_name
         .root_list = [data...]
-        .table_info:
-            .table_chain:
-                .db.table
-            .fields.base
-                .name = [name...]
-                .comment = [name...]
-                .type = [name...]
-                .key = [name...]
-            .fields.ext
-                .cond = [op...]
-                .select = [bool...]
+        .table_info = table_info
+
+
