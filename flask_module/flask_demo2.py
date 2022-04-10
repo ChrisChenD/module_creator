@@ -2,6 +2,7 @@
 
 import json
 from logging import exception
+from re import L
 from sys import prefix
 from unicodedata import name
 from flask import jsonify,request
@@ -126,6 +127,19 @@ class task_src(module):
         m = module().get_module(module_name)
         return {'module':m, 'task':task_name}
 
+class Functor:
+    def __init__(self, name, chain='not_define_chain'):
+        self.name = name
+        self.chain = chain
+    def to_dict(self):
+        r = dict()
+        for member_name in dir(self):
+            if not member_name.startswith('_'):
+                member = getattr(self)
+                if not callable(member):
+                    r[member_name] = member
+        return r
+    
 
 class plan(Flask_url):
     dynamic = ['plan']
