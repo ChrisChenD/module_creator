@@ -9,7 +9,7 @@ from flask import jsonify,request
 from lib_flask import app, Flask_url
 from table_json import json_context
 from flask_module.utils.mysql_utils import ReadMysql
-from module import Module
+from module import readMysql, colAppend, saveExcel  
 
 class home(Flask_url):
     def init(self): 
@@ -100,7 +100,7 @@ class task(Flask_url):
     #     sheet = {
     #     name = '',
     #     fields = [field, ...field]
-    #     }    
+    #     }
     # ]
     def get(self, task_name):
         task_info = self.data.get(task_name,
@@ -127,18 +127,18 @@ class task_src(module):
         m = module().get_module(module_name)
         return {'module':m, 'task':task_name}
 
-class Functor:
-    def __init__(self, name, chain='not_define_chain'):
-        self.name = name
-        self.chain = chain
-    def to_dict(self):
-        r = dict()
-        for member_name in dir(self):
-            if not member_name.startswith('_'):
-                member = getattr(self)
-                if not callable(member):
-                    r[member_name] = member
-        return r
+# class Functor:
+#     def __init__(self, name, chain='not_define_chain'):
+#         self.name = name
+#         self.chain = chain
+#     def to_dict(self):
+#         r = dict()
+#         for member_name in dir(self):
+#             if not member_name.startswith('_'):
+#                 member = getattr(self)
+#                 if not callable(member):
+#                     r[member_name] = member
+#         return r
     
 
 class plan(Flask_url):
@@ -152,7 +152,7 @@ class plan(Flask_url):
             self.set(plan, {
                 'name':plan, 
                 'functor_list':[
-                    {'name':'read_mysql'},
+                    # {'name':'read_mysql'},
                 ],
                 'new_functor_list':[
                     # 1 读取表 + select + cond
@@ -160,58 +160,112 @@ class plan(Flask_url):
                     # 3 row-map
                     # 4 col-filter
                     # 5 write_to_excel_sheet1
-                    {'name':'read_mysql'},
-                    {'name':'col_append'},
-                    {'name':'col_map'},
-                    {'name':'row_filter'},
-                    {'name':'save_excel'},
+                    {'name':cls_.__name__}
+                    for cls_ in [readMysql, colAppend, saveExcel]
                 ],
                 'op':[],
             })
-        return self.data[plan]
+        # print("self.data[plan]", self.data[plan])
+        # return jsonify(self.data[plan])
+        plan_json = self.data[plan]
+        # print('plan_json', plan_json)
+        functor_list = []
+        for functor in plan_json['functor_list']:
+            # print('functor', functor)
+            functor_list.append(functor.json_base)
+        plan_json['functor_list'] = functor_list
+        # return self.data[plan]
+        # print('get data:', plan_json)
+        return plan_json
         # // task.name
         # // functor_list
         # // new_functor_list
         # // task.op
     def post(self, data, plan):
         "{'key':'functor_list', 'idx':idx, 'data':data}"
-        plan_copy = self.data[plan]
-        new_plan = getattr(self, data['method'])(plan_copy, **data)
-        self.set(plan, new_plan)
-        return {'plan':new_plan}
+        print("data", data)
+        if data['method'].startswith('functor_'):
+            functor = self.get_functor(plan, data['functor_id'])
+            functor.op(**data)
+            # print('functor_json', functor.json_base)
+            self.set_functor(plan, data['functor_id'], functor)
+        else:
+            getattr(self, data['method'])(plan, **data)
+            # return self.functor_op(plan, **data)
+        # pass
+        # plan_copy = self.data[plan]
+        # import copy
+        # kwargs = copy.deepcopy(data)
+        # del kwargs['method']
+        # # del kwargs['table_name']
+        # new_plan = getattr(self, data['method'])(plan_copy, **kwargs)
+        # print('post', data)
+        # self.set(plan, new_plan)
+        # return {'plan':new_plan}
+        return {"error":'method_error'}
+    # def select_switch(self, plan_copy, functor_idx, field_idx):
+    #     # 'field_idx':index,
+    #     # 'functor_idx':idx
+    #     functor = plan_copy['functor_list'][functor_idx]
+    #     functor['select_list'][field_idx] = not functor['select_list'][field_idx]
+    #     plan_copy['functor_list'][functor_idx] = functor
+    #     return plan_copy
     
-    def functor_add_chain(self, plan_copy, functor_idx, db_chain):
-        # m = module().get_module(db_chain)
-        functor = plan_copy['functor_list'][functor_idx]
-        # this.name = data.name//string
-        # this.idx = data.idx
-        # this.table_info = data.table_info
-        db,tb = db_chain.split('.')
-        module = Module(db, tb)
-        functor['table_info'] = module.table_info
-        plan_copy['functor_list'][functor_idx] = functor
-        return plan_copy
-        # {
-        #     "name": module.table_info['table_name'],
-        # # this.name = data.name//string
-        # # this.name_ext = data.name_ext
-        # # this.fields = data.fields
-        # }
-        # Module
+    def get_functor(self, plan, functor_id):
+        plan_copy = self.data[plan]
+        return plan_copy['functor_list'][functor_id]
+    def set_functor(self, plan, functor_id, new_functor):
+        plan_copy = self.data[plan]
+        plan_copy['functor_list'][functor_id] = new_functor
+        self.set(plan, plan_copy)
+        # return plan_copy['functor_list'][functor_id]
+    # def append_functor(self, plan)
 
-    def functor_new(self, plan_copy, name, **kwargs):
-        plan_copy['functor_list'].append(
-            {'name':name}
-        )
-        return plan_copy
-    def functor_del(self, plan_copy, idx, **kwargs):
+    # def functor_op(self, plan, functor_id, **kwargs):
+    #     functor.op(**kwargs)
+    #     # import copy
+    #     # kwargs = copy.deepcopy(data)
+    #     # del kwargs['method']
+    #     # del kwargs['table_name']
+    #     db,tb = module_chain.split('.')
+    #     # Module(db, tb)
+    #     plan_copy = self.data[plan]
+    #     new_plan = getattr(self, method)(plan_copy, **kwargs)
+    #     # print('post', data)
+    #     self.set(plan, new_plan)
+    #     return {'plan':new_plan}
+
+    # def functor_add_chain(self, plan_copy, functor_idx, db_chain):
+    #     functor = self.get_functor(plan_copy, functor_idx)
+        
+        # functor = plan_copy['functor_list'][functor_idx]
+        # # print('db_chain', db_chain)
+        # db,tb = db_chain.split('.')
+        # functor = Module(db, tb).maker_functor_ext(functor)
+        # plan_copy['functor_list'][functor_idx] = functor
+        # print('plan_copy', plan_copy.keys())
+        # return plan_copy
+
+    def functorNew(self, plan, functor_name, method):
+        plan_copy = self.data[plan]
+        functor_cls = eval(functor_name)
+        plan_copy['functor_list'].append(functor_cls())
+        # self.data[plan] = plan_copy
+        self.set(plan, plan_copy)
+        print('new_functor', self.data[plan])
+        # return plan_copy
+    def functorDel(self, plan, idx, method):
+        plan_copy = self.data[plan]
         functor_list = plan_copy['functor_list']
         plan_copy['functor_list'] = functor_list[:idx] + functor_list[idx+1:]
-        return plan_copy
+        # plan_copy['functor_list'].append(functor_cls())
+        self.set(plan, plan_copy)
+        # self.data[plan] = plan_copy
+        # return plan_copy
     
 
-
 if __name__ == "__main__":
+    
     home.registry(app)
     table.registry(app)
     module.registry(app)
