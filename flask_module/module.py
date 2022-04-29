@@ -2,6 +2,7 @@
 from operator import truediv
 from flask_module.utils.mysql_utils import ReadMysql
 import copy
+from flask_module.module_lines import Item_line, Field_line,Comment_line,Cond_line,Select_line,Key_line,Prev_line
 
 class Functor:
     def __init__(self) -> None:
@@ -9,12 +10,10 @@ class Functor:
             name=self.__class__.__name__
         )
     @property
-    def data(self):
+    def json_base(self):
         data = copy.deepcopy(self.base_data)
         return data
-    @property
-    def json_base(self):
-        return self.data
+        # return self.data
     def op(self, **data):
         func = data['method']
         func = func[len('functor_'):]
@@ -24,55 +23,44 @@ class Functor:
         del params['functor_id']
         getattr(self, func)(**params)
         return None
+
+    # current_fields,prev_fields
+    @property
+    def not_load(self):
+        return 'prev_list' not in self.base_data
+    @property
+    def current_fields(self):
+        if self.not_load: return []
+        fields = copy.deepcopy(self.base_data['prev_list'].prev_list)
+        fields.extend(self._selected_field_list())
+        return fields
+    def set_prev_fields(self, prev_fields):
+        if self.not_load: return
+        self.base_data['prev_list'].prev_list = copy.deepcopy(prev_fields)
+        #  = 
+    def _selected_field_list(self):
+        field_list = []
+        select_list = self.base_data.get('select_list', None)
+        if select_list is not None:
+            field_list = [
+                field
+                for i,field in enumerate(self.base_data['field_list'].data_list)
+                if self.base_data['select_list'].data_list[i] is True
+            ]
+        print('_selected_field_list')
+        print('select_list', select_list)
+        print('field_list', field_list)
+        return field_list
+
+
 class MysqlFunctor(Functor):
-    def default_cond_list(self):
-        field_list = self.base_data['field_list']
-        cond_list = copy.deepcopy(self.base_data['cond_list'])
-        for i in range(len(field_list)):
-            field = field_list[i]
-            if field == 'dataStatus':
-                cond_list[i] = 'dataStatus!=3'
-            if field == 'isValid':
-                cond_list[i] = 'isValid=1'
-        return cond_list
-        
-    def default_select_list(self):
-        select_list = [True]*len(self.base_data['field_list'])
-        for i,field in enumerate(self.base_data['field_list']):
-            if field in 'id,dataStatus,modifyTime,createTime'.split(','):
-                print('field!', field)
-                select_list[i] = False
-        return select_list
-    
-    def map_id(self, field_id):
-        # 因为我们重排了列的位置，(true在前)需要逻辑映射
-        select_list = self.base_data['select_list']
-        id_map = [
-            i
-            for i,b in enumerate(select_list) if b==True
-        ]+[
-            i
-            for i,b in enumerate(select_list) if b==False
-        ]
-        return id_map[field_id]
 
     def select_switch(self, field_id):
-        if field_id == 0:
-            if self.base_data['select_list'][0] == False:
-                # 全不选->默认
-                self.base_data['select_list'] = self.default_select_list()
-                self.base_data['select_list'][0] = True
-            else:
-                # 默认->全不选
-                self.base_data['select_list'] = [False]*len(self.base_data['select_list'])
-                self.base_data['select_list'][0] = False
-        else:
-            field_id = self.map_id(field_id)
-            self.base_data['select_list'][field_id] = not self.base_data['select_list'][field_id]
+        self.base_data['select_list'].select_switch(field_id)
 
     def modify_cond(self, field_id, cond):
-        field_id = self.map_id(field_id)
-        self.base_data["cond_list"][field_id] = cond
+        cond_line = self.base_data['cond_list']
+        cond_line.set(cond_line._real_id(field_id), cond)
 
 
     @property
@@ -106,96 +94,61 @@ class MysqlFunctor(Functor):
             import traceback;print(traceback.format_exc())
         return table_info
     
+    def item_list(self):
+        return list(self.item_map().keys())
+    def item_map(self):
+        from module_lines import item_map
+        return item_map(self.field_list)
 
+    def init_base_data(self):
+        self.base_data = {
+            'name':self.__class__.__name__,
+            'table_info':self.table_info,
+        }
+        for item,item_value in self.item_map().items():
+            # print('{self.__class__.__name__}.init_base_data:', item)
+            self.base_data[item] = item_value
+
+    @property
+    def json_base(self):
+        data = copy.deepcopy(self.base_data)
+        if 'select_list' not in data:
+            return data
+        for col_list in self.item_list():
+            data[col_list] = self.base_data[col_list].selected_data()
+        return data
 
 class readMysql(MysqlFunctor):
     def load_chain(self, db_chain) -> None:
         self.db_name, self.table_name = db_chain.split(".")
-        self.base_data = {
-            'name':self.__class__.__name__,
-            'table_info':self.table_info,
-            'field_list':['field_list']+[field['Field'] for field in self.field_list],
-            'comment_list':['comment_list']+[field['Comment'] for field in self.field_list],
-            'cond_list':['cond_list']+['']*len(self.field_list),
-            'select_list':[True]+[True]*len(self.field_list),
-        }
-        self.base_data['select_list'] = self.default_select_list()
-        self.base_data['cond_list'] = self.default_cond_list()
-    @property
-    def data(self):
-        data = copy.deepcopy(self.base_data)
-        if 'select_list' not in data:
-            return data
-        select_list = self.base_data['select_list']
-        
-        for col_list in 'field_list,comment_list,cond_list,select_list'.split(','):
-            data[col_list] = [{
-                'value':data[col_list][0],
-                'selected':True
-            }]+[{
-                'selected':select_list[i],
-                'value':value,
-            } for i,value in enumerate(self.base_data[col_list])
-                if select_list[i] == True and i>0
-            ]+[{
-                'selected':select_list[i],
-                'value':value,
-            } for i,value in enumerate(self.base_data[col_list])
-                if select_list[i] == False and i>0
-            ]
-        data["select_list"][0]['value'] = '默认' if select_list[0] else '全不选'
-        return data
+        self.init_base_data()
+    
 class saveExcel(Functor):
-    pass
+    def load_chain(self, db_chain) -> None:
+        self.base_data['db_chain'] = db_chain
+    
+    @property
+    def json_base(self):
+        return self.base_data
 
 class colAppend(MysqlFunctor):
     ""
+    def item_map(self):
+        from module_lines import item_map2
+        return item_map2(self.field_list)
+
     def load_chain(self, db_chain) -> None:
         self.db_name, self.table_name = db_chain.split(".")
-        self.base_data = {
-            'name':self.__class__.__name__,
-            'table_info':self.table_info,
-            'field_list':['field_list']+[field['Field'] for field in self.field_list],
-            'comment_list':['comment_list']+[field['Comment'] for field in self.field_list],
-            'cond_list':['cond_list']+['']*len(self.field_list),
-            'select_list':[True]+[True]*len(self.field_list),
-            'key_list':[
-                dict(value='key_list', selected=False) 
-                ]+[
-                dict(value=field['Key'], selected=False) 
-                for field in self.field_list
-            ],
-        }
-        self.base_data['select_list'] = self.default_select_list()
-        self.base_data['cond_list'] = self.default_cond_list()
-    def select_key(self, field_id):
-        field_id = self.map_id(field_id)
-        self.base_data['key_list'][field_id]['selected'] = not self.base_data['key_list'][field_id]['selected']
-        
-    
-    @property
-    def data(self):
-        data = copy.deepcopy(self.base_data)
-        if 'select_list' not in data:
-            return data
-        select_list = self.base_data['select_list']
-        
-        for col_list in 'field_list,comment_list,cond_list,select_list,key_list'.split(','):
-            data[col_list] = [{
-                'value':data[col_list][0],
-                'selected':True
-            }]+[{
-                'selected':select_list[i],
-                'value':value,
-            } for i,value in enumerate(self.base_data[col_list])
-                if select_list[i] == True and i>0
-            ]+[{
-                'selected':select_list[i],
-                'value':value,
-            } for i,value in enumerate(self.base_data[col_list])
-                if select_list[i] == False and i>0
-            ]
-        data["select_list"][0]['value'] = '默认' if select_list[0] else '全不选'
-        return data
+        self.init_base_data()
 
+    # def select_key(self, field_id):
+    #     field_id = self._map_id(field_id)
+    #     self.base_data['key_list'][field_id]['selected'] = not self.base_data['key_list'][field_id]['selected']
+    def select_chunk_key(self, field_id):
+        self.base_data['prev_list'].select_chunk_key(field_id)
     
+    def set_append_key(self, field_id):
+        self.base_data['append_key'] = self.base_data['select_list'][field_id]
+    def set_root_key(self, prev_id):
+        self.base_data['prev_root_key'] = self.base_data['prev_fields'][prev_id]
+

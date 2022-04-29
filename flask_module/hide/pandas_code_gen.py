@@ -6,7 +6,6 @@
 # 5 write_to_excel_sheet1
 from modulefinder import Module
 
-
 class Table:
     class chain:
         def __init__(self, host_port, usr_pwd, db, tb) -> None:
