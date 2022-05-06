@@ -245,6 +245,7 @@ if __name__ == "__main__":
 export PYTHONPATH=`pwd`;python new_flask_module/app.py
 
 python new_flask_module/module/plan.py > /home/chd/demo/next_demo/pages/plan2/libs/base_module.js
+http://109.244.159.137:3000/plan2/t1
 """
 
 
