@@ -4,19 +4,32 @@ from mvc_flask.module.mvc_plan import Plan, module_info
 
 mvc_plan_dir = '/home/ubuntu/git/npm_pro/pages/mvc_plan'
 
-
-def Auto_type(cls_list):
+# 自动解析 list 里面的html类
+# swtch_case
+def Auto_type(cls_list, compo_list):
     cls_case_list = [
         f"""
     if (data.cls_type_=='{cls.__name__}')
-        return <{cls.__name__}.view {{...data}}></{cls.__name__}.view>    
+        return <{cls.__name__}.view {{...data}} ></{cls.__name__}.view>    
         """.rstrip()
         for cls in cls_list
     ]
-    cls_case_list.append(f"""
+    compo_case_list = [
+        f"""
+    if (data.cls_type_=='{cls.__name__}')
+        return <{cls.__name__} {{...data}} ></{cls.__name__}>    
+        """.rstrip()
+        for cls in compo_list
+    ]
+    ret = f"""
+    console.log('Error!: undifined type:', data)
     return <p>undefined type [{{data}}]</p>
-    """.rstrip())
-    cls_case_list = '\n'.join(cls_case_list)
+    """.rstrip()
+    # cls_case_list.append(f"""
+    # console.log('Error!: undifined type:', data)
+    # return <p>undefined type [{{data}}]</p>
+    # """.rstrip())
+    cls_case_list = '\n'.join(compo_case_list+cls_case_list+[ret,])
     return f"""
 export function Auto_type(data){{
     {cls_case_list}
@@ -25,7 +38,12 @@ export function Auto_type(data){{
 
 
 js_module = [
-    Auto_type(module_info.cls_list)
+    # class swtch_case code
+    # for list parse
+    Auto_type(module_info.cls_list, module_info.compo_list),
+    # compo code
+    '\n'.join([compo.compo_js() for compo in module_info.compo_list]),
+    
 ]
 # for obj in Plan.default_module().traverse():
 for class_ in module_info.cls_list:
@@ -37,18 +55,3 @@ with open(f'{mvc_plan_dir}/libs/module.js', 'w+') as f:
     f.write('\n'.join(js_module))
 
 
-
-
-# for obj in module.traverse_module():
-#     print(obj.js_code())
-
-
-
-# print('module', module)
-# print('module.functor_list', module.functor_list)
-# print('module.new_functor_list', module.new_functor_list)
-
-'''
-export PYTHONPATH=`pwd`;python mvc_flask/js_maker.py
-
-'''

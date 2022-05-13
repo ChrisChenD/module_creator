@@ -3,12 +3,8 @@
 import json,copy
 from flask import Flask,jsonify,request
 import threading
-# import requests
-# from flask_module.string_to_table import string_to_table, data_module
 
-#create the object of Flask
 app  = Flask(__name__)
-
 
 #created home view
 class Flask_url:
@@ -49,14 +45,12 @@ class Flask_url:
         def delivery(*args, **kwargs):
             return Flask_url.delivery(cls, *args, **kwargs)
         delivery.__name__ = f_name
-        print('regi', delivery.__name__, path)
         # @app.route(f'/home', methods=['GET', 'POST'])
         f = app.route(path, methods=['GET', 'POST'])
         cls.delivery = f(delivery)
         cls.obj = cls()
     # @classmethod
     def delivery(cls, **dynamic_kwargs):# sub class
-        print('dynamic_kwargs', dynamic_kwargs)
         self = cls.obj
         if request.method == 'GET':
             dynamic_kwargs = dict(
