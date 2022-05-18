@@ -7,7 +7,7 @@ class Com_common(Module_base):
         # idx, func_name, params = func_info
         kwargs = copy.deepcopy(fix_kwargs)
         kwargs.update(ext_kwargs)
-        print('idx__', idx__)
+        print('idx__', idx__, 'func_name', func_name__)
         obj = self.get_obj_by_id(idx__)
         func = getattr(obj, func_name__)
         # func = eval(func)
@@ -153,6 +153,7 @@ function {class_name}(self){{
             self.cls_name = cls_name
         def onClick(self, *params):
             # self.recall(*params)
+
             new_module = self.call_param_func(*self.onClick_recall)# (*params)
             return new_module
 

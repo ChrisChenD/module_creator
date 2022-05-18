@@ -19,8 +19,6 @@ from mvc_flask.module.code_maker.code_gen import code_gen
 cls1 = 'bg-stone-700 border-4 text-white'
 
 
-
-
 @module_info.registry
 class NewFunctor(Module_base):
     @staticmethod
@@ -80,10 +78,14 @@ class Plan_op(Module_base):
     def CODE_GENERATE(self):
         self.code.text = code_gen(self.root.functor_list.functor_list.e_list)        
     def CODE_PUSH(self):
-        self.code.text = code_gen(self.root.functor_list.functor_list.e_list)        
+        # self.code.text = code_gen(self.root.functor_list.functor_list.e_list)        
+        self.CODE_GENERATE()
         import os
+        plan_name = self.root.name
+        with open(f'/home/ubuntu/git/robot_code/auto/{plan_name}.py', 'w+') as f:
+            f.write(self.code.text)
         print('code: push!!!!')
-        os.system("git add .;git commit -m '.';git push")
+        os.system("cd /home/ubuntu/git/robot_code;git add .;git commit -m '.';git push")
         print('code: push ok!!!!')
         
 

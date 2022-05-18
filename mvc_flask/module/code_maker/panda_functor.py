@@ -1,5 +1,6 @@
 class Panda_functor:
     def ReadMysqlDb(self, 
+        functor_id,
         db_name, tb_name, tb_cn_name, 
         base_field_list, base_comment_list, 
         select_list, base_cond_list,
@@ -47,17 +48,24 @@ def f_root():
         """.strip()
         return r
     
-    def colAppend(self):
-        base_data = self.functor.base_data
-        print('base_data', base_data)
-        db_name = base_data['table_info']['table_schema']
-        tb_name = base_data['table_info']['table_name']
-        tb_cn_name = base_data['table_info']['table_comment']
+    def colAppend(self,
+        functor_id,
+        db_name, tb_name, tb_cn_name, 
+        base_field_list, base_comment_list, 
+        select_list, base_cond_list,
+        append_key, root_key, key_type,
+        # key_list, 
+        ):
+        # base_data = self.functor.base_data
+        # print('base_data', base_data)
+        # db_name = base_data['table_info']['table_schema']
+        # tb_name = base_data['table_info']['table_name']
+        # tb_cn_name = base_data['table_info']['table_comment']
         
-        base_field_list = base_data['field_list'][1:]
-        base_comment_list = base_data['comment_list'][1:]
-        select_list = base_data['select_list'][1:]
-        key_list = base_data['key_list'][1:]
+        # base_field_list = base_data['field_list'][1:]
+        # base_comment_list = base_data['comment_list'][1:]
+        # select_list = base_data['select_list'][1:]
+        # key_list = base_data['key_list'][1:]
         select_field_list = ",".join([
             field
             for i,field in enumerate(base_field_list)
@@ -71,25 +79,17 @@ def f_root():
         ])
         cond_list = ' AND '.join([
             cond
-            for cond in base_data['cond_list']
+            # for cond in base_data['cond_list']
+            for cond in base_cond_list
             if cond.strip() != ''
         ])
-        # def chunk_append(root_chunk, append_info, key, key_type=str):
-        key_type = 'str'
-        # append_key_list = [
-        #     field
-        #     for i,field in enumerate(base_field_list)
-        #     if key_list[i]==True
-        # ]
-        # append_key = ''
-        # if len(append_key_list)>0:
-        #     append_key = append_key_list[0]
-        append_key = base_data.get('append_key', '')
-        root_key = base_data.get('prev_root_key', '')
+        # key_type = 'str'
+        # append_key = base_data.get('append_key', '')
+        # root_key = base_data.get('prev_root_key', '')
 
         r = f"""
-def f{self.functor_id}(chunk):
-    "{self.functor.__class__.__name__}"
+def f{functor_id}(chunk):
+    "colAppend"
     # {tb_cn_name}
     # {select_comment_list}
     root_key,append_key = {root_key},{append_key}
@@ -106,6 +106,7 @@ def f{self.functor_id}(chunk):
         return r
     
     def SaveExcel(self, 
+        functor_id,
         excel_name, rename_dict
     ):
         select_list = rename_dict.keys()

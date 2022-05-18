@@ -28,11 +28,22 @@ class plan(Flask_url):
         self.set(plan_name, new_module)
         return 'call!'
 
+class new_framework(Flask_url):
+    dynamic = ['frame_name']
+    def get(self, frame_name):
+        return {
+            'name': frame_name
+        }
+    def post(self, call_param, frame_name):
+        print('POST: param:', call_param)
+        
 
 
 if __name__ == "__main__":
     
     plan.registry(app)
+    new_framework.registry(app)
+    
     app.run(debug=True)
 
 

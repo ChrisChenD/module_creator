@@ -2,7 +2,7 @@ from mvc_flask.module.code_maker.panda_functor import panda_functor
 
 def import_libs():
     return f"""
-import pandas 
+import pandas
 from pandaUtil_mysql_chain import mysql_chain
 from pandaUtil_append import chunk_append,readMysql
         """.strip()
@@ -13,9 +13,10 @@ def code_gen(functor_list):
     f_fellows = [f"f{i}" for i in range(len(functor_list)-1) if i>0]
     functor_def_list = '\n'.join([
         getattr(panda_functor, functor.__class__.__name__)(
-            *functor.param_for_code()
+            functor_id, 
+            *functor.param_for_code(),
         )
-        for functor in functor_list
+        for functor,functor_id in enumerate(functor_list)
     ])
     code = f"""
 #!/usr/bin/env python3
